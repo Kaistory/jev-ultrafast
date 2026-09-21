@@ -45,16 +45,25 @@ def command(name, body):
     global AGENT
     if name == "reset":
         scenario = body.get("scenario", "flights")
-        if scenario not in {"travel", "research", "flights"}:
+        if scenario not in {"travel", "research", "flights", "custom"}:
             raise ValueError("Unknown demo scenario")
         goal = body.get("goal", "").strip()
         if not goal or len(goal) > 2000:
             raise ValueError("Enter 1–2,000 characters")
+        if scenario == "custom":
+            start_url = body.get("url", "").strip()
+            parsed = urlparse(start_url)
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                raise ValueError("Enter a full http(s) URL, e.g. https://example.com/")
+            if len(start_url) > 2000:
+                raise ValueError("URL is too long")
+        elif scenario == "flights":
+            start_url = "https://www.google.com/travel/flights?hl=en"
+        else:
+            start_url = f"{ORIGIN}/fixture.html?scenario={scenario}"
         close_browser()
         AGENT = Agent(
-            "https://www.google.com/travel/flights?hl=en"
-            if scenario == "flights"
-            else f"{ORIGIN}/fixture.html?scenario={scenario}",
+            start_url,
             goal,
             screenshots=True,
             record_dir=Path.cwd() / "artifacts" / "frames" if body.get("record") else None,

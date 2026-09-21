@@ -144,6 +144,7 @@ select {
   font-size: 12px;
 }
 input[type="text"],
+input[type="url"],
 #goal {
   width: 100%;
   min-width: 0;
@@ -154,6 +155,13 @@ input[type="text"],
   outline: 0;
   padding: 6px 0;
   color: #343530;
+}
+#url-row {
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 10px;
+}
+#url-row[hidden] {
+  display: none;
 }
 input:focus-visible,
 select:focus-visible {

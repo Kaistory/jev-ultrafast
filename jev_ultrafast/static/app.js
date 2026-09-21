@@ -8,6 +8,7 @@ const goals = {
   travel: 'Find a Design stay in Lisbon with Free cancellation and open Casa Flora.',
   research:
     "Open the article about using finite choices to control browser agents.",
+  custom: "",
 };
 const escape = (value) =>
   String(value ?? "").replace(
@@ -34,6 +35,7 @@ function controls() {
   const live = state?.page && !["done", "blocked"].includes(state.status);
   $("start").disabled = busy;
   $("scenario").disabled = busy;
+  $("page-url").disabled = busy;
   $("goal").disabled = busy;
   $("choose").disabled = busy || !live;
   $("execute").disabled = busy || !state?.decision || !live;
@@ -147,16 +149,28 @@ function render() {
 }
 $("task-form").addEventListener("submit", (event) => {
   event.preventDefault();
+  if ($("scenario").value === "custom" && !$("page-url").reportValidity()) return;
   automatic = false;
   perform(
     () =>
-      call("reset", { scenario: $("scenario").value, goal: $("goal").value }),
+      call("reset", {
+        scenario: $("scenario").value,
+        goal: $("goal").value,
+        url: $("page-url").value,
+      }),
     "Opening a fresh browser…",
   );
 });
+function syncScenario() {
+  const custom = $("scenario").value === "custom";
+  $("url-row").hidden = !custom;
+  $("page-url").required = custom;
+}
 $("scenario").addEventListener("change", () => {
   $("goal").value = goals[$("scenario").value];
+  syncScenario();
 });
+syncScenario();
 $("choose").addEventListener("click", () =>
   perform(() => call("predict"), "Jev is comparing the actions…"),
 );
