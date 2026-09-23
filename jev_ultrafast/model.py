@@ -3,6 +3,9 @@
 import json
 import math
 import os
+import re
+import shutil
+import subprocess
 import time
 
 import httpx
@@ -157,7 +160,69 @@ def field_context(goal, action, page, history):
     }
 
 
+def find_agy_binary():
+    path = shutil.which("agy")
+    if path and os.path.isfile(path) and os.access(path, os.X_OK):
+        return path
+    user_home = os.path.expanduser("~")
+    candidates = [
+        os.path.join(user_home, ".local/bin/agy"),
+        "/usr/local/bin/agy",
+        "/home/tts/.local/bin/agy",
+    ]
+    for c in candidates:
+        if os.path.isfile(c) and os.access(c, os.X_OK):
+            return c
+    return None
+
+
+def field_text_gemini_subscription(context):
+    agy_path = find_agy_binary()
+    if not agy_path:
+        raise ValueError("Antigravity CLI (agy) not found for Gemini subscription.")
+
+    prompt = (
+        f"Instructions: {TEXT_VALUE}\n\n"
+        f"Context:\n{json.dumps(context, ensure_ascii=False)}"
+    )
+    started = time.perf_counter()
+    try:
+        res = subprocess.run(
+            [agy_path, "-p", prompt, "--effort", "low", "--disable-slash-commands"],
+            capture_output=True,
+            text=True,
+            timeout=25,
+        )
+    except Exception as e:
+        raise RuntimeError(f"Gemini subscription execution error: {e}") from None
+
+    if res.returncode != 0:
+        raise RuntimeError(f"Gemini subscription CLI returned code {res.returncode}: {res.stderr}")
+
+    raw_output = res.stdout.strip()
+    match = re.search(r"\{.*\}", raw_output, re.DOTALL)
+    if not match:
+        raise ValueError("Gemini subscription returned non-JSON text; nothing typed.")
+    try:
+        output = json.loads(match.group(0))
+        value = output["text"]
+        if not isinstance(value, str) or not value.strip() or len(value) > 2000:
+            raise ValueError()
+    except (ValueError, KeyError, TypeError):
+        raise ValueError("Text helper returned no valid field value; nothing typed.") from None
+
+    return value, {
+        "model": "gemini-subscription",
+        "latency_ms": round((time.perf_counter() - started) * 1000),
+        "usage": {},
+    }
+
+
 def field_text(context):
+    provider = os.environ.get("TEXT_MODEL_PROVIDER", "").lower()
+    if provider in {"gemini", "agy", "gemini_subscription"}:
+        return field_text_gemini_subscription(context)
+
     key = os.environ.get("TEXT_MODEL_API_KEY")
     if not key:
         raise ValueError("TYPE_TEXT needs TEXT_MODEL_API_KEY; no text is hardcoded or guessed by the executor.")
@@ -196,3 +261,4 @@ def field_text(context):
         "latency_ms": round((time.perf_counter() - started) * 1000),
         "usage": result.get("usage", {}),
     }
+

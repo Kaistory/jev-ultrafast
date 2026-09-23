@@ -132,6 +132,21 @@ form {
   align-items: center;
   gap: 16px;
 }
+.url-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.url-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #77776e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
 input,
 select,
 button {
@@ -144,6 +159,7 @@ select {
   font-size: 12px;
 }
 input[type="text"],
+input[type="url"],
 #goal {
   width: 100%;
   min-width: 0;
@@ -735,3 +751,78 @@ textarea:focus-visible {
 }
 
 .operation-choices{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0}.operation-choice{font-size:10px;padding:5px 7px;border:1px solid #dbe2d4;border-radius:5px;color:#687260}.operation-choice.best{color:#185c3b;background:#eef6e5;border-color:#88ac79}
+
+.chat-section {
+  margin-top: 24px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+}
+.gemini-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: #176743;
+  background: #eef6e5;
+  border: 1px solid #88ac79;
+  padding: 3px 8px;
+  border-radius: 12px;
+  margin-left: 10px;
+  letter-spacing: 0.5px;
+}
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 14px 0;
+  padding: 8px 0;
+}
+.chat-msg {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  line-height: 1.5;
+}
+.chat-msg.user {
+  background: #f0f4ff;
+  border-left: 3px solid #3b82f6;
+  color: #1e3a8a;
+}
+.chat-msg.assistant {
+  background: #eef6e5;
+  border-left: 3px solid #176743;
+  color: #14532d;
+}
+.chat-msg.system {
+  background: #f8fafc;
+  border-left: 3px solid #94a3b8;
+  color: #475569;
+  font-style: italic;
+}
+.chat-form {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+.chat-form input[type="text"] {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  background: #fafaf7;
+  color: inherit;
+}
+.chat-form input[type="text"]:focus {
+  outline: 2px solid #2f8a60;
+  background: white;
+}
+.chat-form button {
+  padding: 10px 18px;
+  white-space: nowrap;
+}

@@ -32,9 +32,14 @@
           <label for="goal">Give it a task</label
           ><select id="scenario" name="scenario" aria-label="Demo scenario">
             <option value="flights">Google Flights · real web</option>
+            <option value="custom">Custom URL · any website</option>
             <option value="travel">Travel planner · fixture</option>
             <option value="research">Reading room · fixture</option>
           </select>
+        </div>
+        <div class="url-row" id="custom-url-row" hidden>
+          <label for="custom-url" class="url-label">URL</label>
+          <input type="url" id="custom-url" name="custom-url" placeholder="https://en.wikipedia.org/wiki/Main_Page" aria-label="Website URL" />
         </div>
         <div class="task-row">
           <textarea id="goal" name="goal" rows="5">
@@ -119,6 +124,18 @@ Find one-way flights from Zurich to London on September 20, 2026, for one adult 
             Operation and target are separate choices in one request.<br />Text is generated only for TYPE_TEXT.
           </p>
         </aside>
+      </section>
+      <section class="chat-section">
+        <div class="trace-heading">
+          <h2>💬 Agent Chat & Live Guidance <span class="gemini-tag">Gemini Subscription ⚡</span></h2>
+        </div>
+        <div id="chat-messages" class="chat-messages">
+          <p class="muted">Gửi tin nhắn hoặc chỉ thị thêm cho Agent bất kỳ lúc nào để hướng dẫn tác vụ duyệt web.</p>
+        </div>
+        <form id="chat-form" class="chat-form">
+          <input type="text" id="chat-input" placeholder="Nhập tin nhắn hoặc hướng dẫn bổ sung (ví dụ: bấm nút chế độ lái Sport, bật điều hòa)..." autocomplete="off" />
+          <button type="submit" id="chat-send" class="primary">Gửi lệnh ↗</button>
+        </form>
       </section>
       <section class="trace">
         <div class="trace-heading">

@@ -34,6 +34,7 @@ function controls() {
   const live = state?.page && !["done", "blocked"].includes(state.status);
   $("start").disabled = busy;
   $("scenario").disabled = busy;
+  if ($("custom-url")) $("custom-url").disabled = busy;
   $("goal").disabled = busy;
   $("choose").disabled = busy || !live;
   $("execute").disabled = busy || !state?.decision || !live;
@@ -41,6 +42,8 @@ function controls() {
   $("auto").hidden = automatic;
   $("stop").hidden = !automatic;
   $("download").disabled = !state?.history?.length;
+  if ($("chat-input")) $("chat-input").disabled = busy;
+  if ($("chat-send")) $("chat-send").disabled = busy || !state?.page;
 }
 async function perform(fn, label) {
   if (busy) return;
@@ -143,19 +146,56 @@ function render() {
     null,
     2,
   );
+  const chatContainer = $("chat-messages");
+  if (chatContainer) {
+    const messages = state.chat_messages || [];
+    if (messages.length) {
+      chatContainer.innerHTML = messages
+        .map(
+          (m) =>
+            `<div class="chat-msg ${escape(m.role)}"><strong>${m.role === "user" ? "Bạn:" : (m.role === "assistant" ? "Trợ lý Agent:" : "Hệ thống:")}</strong> <span>${escape(m.text)}</span></div>`,
+        )
+        .join("");
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    } else {
+      chatContainer.innerHTML = '<p class="muted">Gửi tin nhắn hoặc chỉ thị thêm cho Agent bất kỳ lúc nào để hướng dẫn tác vụ duyệt web.</p>';
+    }
+  }
   controls();
 }
 $("task-form").addEventListener("submit", (event) => {
   event.preventDefault();
   automatic = false;
+  const scenario = $("scenario").value;
+  const url = $("custom-url")?.value?.trim();
   perform(
-    () =>
-      call("reset", { scenario: $("scenario").value, goal: $("goal").value }),
+    () => call("reset", { scenario, url, goal: $("goal").value }),
     "Opening a fresh browser…",
   );
 });
+$("chat-form")?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const input = $("chat-input");
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = "";
+  perform(async () => {
+    await call("chat", { message: msg });
+  }, "Đang gửi chỉ đạo cho Agent…");
+});
 $("scenario").addEventListener("change", () => {
   $("goal").value = goals[$("scenario").value];
+  const scenario = $("scenario").value;
+  const isCustom = scenario === "custom";
+  $("custom-url-row").hidden = !isCustom;
+  if (!isCustom) {
+    $("goal").value = goals[scenario] || "";
+  } else {
+    if (!$("goal").value || Object.values(goals).includes($("goal").value)) {
+      $("goal").value = "";
+    }
+    $("custom-url")?.focus();
+  }
 });
 $("choose").addEventListener("click", () =>
   perform(() => call("predict"), "Jev is comparing the actions…"),
@@ -237,6 +277,13 @@ fetch("/api/state")
   .then((r) => r.json())
   .then((s) => {
     state = s;
+    if (state?.scenario === "custom") {
+      $("scenario").value = "custom";
+      $("custom-url-row").hidden = false;
+      if (state.page?.url) {
+        $("custom-url").value = state.page.url;
+      }
+    }
     render();
   })
   .catch(() => {

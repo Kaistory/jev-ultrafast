@@ -30,8 +30,15 @@ def load_environment():
 
 
 def response_state():
-    state = AGENT.snapshot() if AGENT else {"page": None, "status": "idle", "history": [], "decision": None}
-    return {**state, "text_model": os.environ.get("TEXT_MODEL", "deepseek-chat"), "max_steps": MAX_STEPS}
+    state = (
+        AGENT.snapshot()
+        if AGENT
+        else {"page": None, "status": "idle", "history": [], "decision": None, "chat_messages": []}
+    )
+    text_model = os.environ.get("TEXT_MODEL", "deepseek-chat")
+    if os.environ.get("TEXT_MODEL_PROVIDER") in {"gemini", "agy", "gemini_subscription"}:
+        text_model = f"Gemini Subscription ({text_model})"
+    return {**state, "text_model": text_model, "max_steps": MAX_STEPS}
 
 
 def close_browser():
@@ -45,21 +52,45 @@ def command(name, body):
     global AGENT
     if name == "reset":
         scenario = body.get("scenario", "flights")
-        if scenario not in {"travel", "research", "flights"}:
+        if scenario not in {"travel", "research", "flights", "custom"}:
             raise ValueError("Unknown demo scenario")
         goal = body.get("goal", "").strip()
         if not goal or len(goal) > 2000:
             raise ValueError("Enter 1–2,000 characters")
+        if scenario == "custom":
+            target_url = body.get("url", "").strip()
+            if not target_url or not (target_url.startswith("http://") or target_url.startswith("https://")):
+                raise ValueError("Enter a valid URL starting with http:// or https://")
+        elif scenario == "flights":
+            target_url = "https://www.google.com/travel/flights?hl=en"
+        elif scenario in {"travel", "research"}:
+            target_url = f"{ORIGIN}/fixture.html?scenario={scenario}"
+        else:
+            raise ValueError("Unknown demo scenario")
         close_browser()
         AGENT = Agent(
-            "https://www.google.com/travel/flights?hl=en"
-            if scenario == "flights"
-            else f"{ORIGIN}/fixture.html?scenario={scenario}",
+            target_url,
             goal,
             screenshots=True,
             record_dir=Path.cwd() / "artifacts" / "frames" if body.get("record") else None,
         )
         AGENT.state["scenario"] = scenario
+        AGENT.state["chat_messages"] = [{"role": "system", "text": f"Đã kết nối {target_url} với mục tiêu: {goal}"}]
+    elif name == "chat":
+        if AGENT is None:
+            raise ValueError("Start a demo first")
+        msg = body.get("message", "").strip()
+        if not msg:
+            raise ValueError("Tin nhắn không được để trống")
+        if "chat_messages" not in AGENT.state:
+            AGENT.state["chat_messages"] = []
+        AGENT.state["chat_messages"].append({"role": "user", "text": msg})
+        AGENT.state["goal"] = f"{AGENT.state['goal']}\nHướng dẫn thêm từ người dùng: {msg}"
+        AGENT.state["plan"].append(msg)
+        AGENT.state["chat_messages"].append({
+            "role": "assistant",
+            "text": f"Đã ghi nhận: \"{msg}\". Mục tiêu của agent đã được cập nhật."
+        })
     else:
         if AGENT is None:
             raise ValueError("Start a demo first")

@@ -2,12 +2,51 @@
 
 import hashlib
 import json
+import os
+import subprocess
 import sys
 import time
+import urllib.request
 from pathlib import Path
 
 from browser_harness.admin import ensure_daemon
 from browser_harness.helpers import cdp
+
+
+def ensure_chrome():
+    cdp_url = os.environ.get("BU_CDP_URL", "http://127.0.0.1:9222")
+    if not (cdp_url.startswith("http://127.0.0.1:") or cdp_url.startswith("http://localhost:")):
+        return
+    try:
+        urllib.request.urlopen(f"{cdp_url.rstrip('/')}/json/version", timeout=0.5)
+        return
+    except Exception:
+        pass
+    port = cdp_url.rstrip("/").split(":")[-1]
+    data_dir = Path.home() / ".config" / "chrome-automation"
+    try:
+        subprocess.Popen(
+            [
+                "google-chrome",
+                f"--remote-debugging-port={port}",
+                f"--user-data-dir={data_dir}",
+                "--no-first-run",
+                "--no-default-browser-check",
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except FileNotFoundError:
+        return
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        try:
+            urllib.request.urlopen(f"{cdp_url.rstrip('/')}/json/version", timeout=0.5)
+            return
+        except Exception:
+            time.sleep(0.2)
+
 
 # Atomically read visible content and controls, preserving actual DOM node identity.
 READ_STATE = Path(__file__).with_name("snapshot.js").read_text()
@@ -19,6 +58,7 @@ class StalePage(ValueError):
 
 class Browser:
     def __init__(self, url):
+        ensure_chrome()
         ensure_daemon()
         self.target = cdp("Target.createTarget", url="about:blank", background=True)["targetId"]
         self.session = cdp("Target.attachToTarget", targetId=self.target, flatten=True)["sessionId"]
